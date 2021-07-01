@@ -63,7 +63,8 @@ protected:
     enum {DEAD_END = -1, NO_VALUE = -2};
 
     virtual int compute_heuristic(const State &ancestor_state) = 0;
-    virtual int compute_heuristic(const State &ancestor_state, OperatorID operator_id);
+
+
 
     /*
       Usage note: Marking the same operator as preferred multiple times

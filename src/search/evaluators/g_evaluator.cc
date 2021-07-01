@@ -1,5 +1,6 @@
 #include "g_evaluator.h"
 
+#include "../evaluation_context.h"
 #include "../option_parser.h"
 #include "../plugin.h"
 
@@ -15,13 +16,21 @@ int GEvaluator::compute_heuristic(const State &ancestor_state) {
     return heuristic_cache[ancestor_state].h;
 }
 
-int GEvaluator::compute_heuristic(const State &ancestor_state, OperatorID operator_id) {
-    // No need to convert the state since we only allow cost transformations.
-    int parent_g = heuristic_cache[ancestor_state].h;
-    int cost = task_proxy.get_operators()[operator_id.get_index()].get_cost();
-    return parent_g + cost;
-}
 
+EvaluationResult GEvaluator::compute_result(EdgeEvaluationContext &eval_context) {
+
+    EvaluationResult result;
+
+    const State &parent_state = eval_context.get_state();
+    OperatorID operator_id = eval_context.get_operator_id();
+    int parent_g = heuristic_cache[parent_state].h;
+    int cost = task_proxy.get_operators()[operator_id.get_index()].get_cost();
+
+    // TODO: should we count this as evaluation?
+    result.set_count_evaluation(true);
+    result.set_evaluator_value(parent_g + cost);
+    return result;
+}
 void GEvaluator::get_path_dependent_evaluators(std::set<Evaluator *> &evals) {
     evals.insert(this);
 }

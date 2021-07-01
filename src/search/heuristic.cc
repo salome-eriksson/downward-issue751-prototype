@@ -26,10 +26,6 @@ Heuristic::Heuristic(const Options &opts)
 Heuristic::~Heuristic() {
 }
 
-int Heuristic::compute_heuristic(const State &ancestor_state, OperatorID) {
-    return compute_heuristic(ancestor_state);
-}
-
 void Heuristic::set_preferred(const OperatorProxy &op) {
     preferred_operators.insert(op.get_ancestor_operator_id(tasks::g_root_task.get()));
 }
@@ -105,8 +101,21 @@ EvaluationResult Heuristic::compute_result(EdgeEvaluationContext &eval_context) 
     assert(preferred_operators.empty());
 
     const State &state = eval_context.get_state();
-    int heuristic = compute_heuristic(state, eval_context.get_operator_id());
-    result.set_count_evaluation(true);
+    bool calculate_preferred = eval_context.get_calculate_preferred();
+
+    int heuristic = NO_VALUE;
+
+    if (!calculate_preferred && cache_evaluator_values &&
+        heuristic_cache[state].h != NO_VALUE && !heuristic_cache[state].dirty) {
+        heuristic = heuristic_cache[state].h;
+        result.set_count_evaluation(false);
+    } else {
+        heuristic = compute_heuristic(state);
+        if (cache_evaluator_values) {
+            heuristic_cache[state] = HEntry(heuristic, false);
+        }
+        result.set_count_evaluation(true);
+    }
 
     assert(heuristic == DEAD_END || heuristic >= 0);
 
