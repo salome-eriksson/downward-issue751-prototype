@@ -22,7 +22,7 @@ class AlternationOpenList : public OpenList<Entry> {
 
     const int boost_amount;
 protected:
-    virtual void do_insertion(EvaluationContext &eval_context,
+    virtual void do_insertion(EvaluationContext<Entry> &eval_context,
                               const Entry &entry) override;
 
 public:
@@ -36,9 +36,9 @@ public:
     virtual void get_path_dependent_evaluators(
         set<Evaluator *> &evals) override;
     virtual bool is_dead_end(
-        EvaluationContext &eval_context) const override;
+        EvaluationContext<Entry> &eval_context) const override;
     virtual bool is_reliable_dead_end(
-        EvaluationContext &eval_context) const override;
+        EvaluationContext<Entry> &eval_context) const override;
 };
 
 
@@ -56,7 +56,7 @@ AlternationOpenList<Entry>::AlternationOpenList(const Options &opts)
 
 template<class Entry>
 void AlternationOpenList<Entry>::do_insertion(
-    EvaluationContext &eval_context, const Entry &entry) {
+    EvaluationContext<Entry> &eval_context, const Entry &entry) {
     for (const auto &sublist : open_lists)
         sublist->insert(eval_context, entry);
 }
@@ -107,7 +107,7 @@ void AlternationOpenList<Entry>::get_path_dependent_evaluators(
 
 template<class Entry>
 bool AlternationOpenList<Entry>::is_dead_end(
-    EvaluationContext &eval_context) const {
+    EvaluationContext<Entry> &eval_context) const {
     // If one sublist is sure we have a dead end, return true.
     if (is_reliable_dead_end(eval_context))
         return true;
@@ -120,7 +120,7 @@ bool AlternationOpenList<Entry>::is_dead_end(
 
 template<class Entry>
 bool AlternationOpenList<Entry>::is_reliable_dead_end(
-    EvaluationContext &eval_context) const {
+    EvaluationContext<Entry> &eval_context) const {
     for (const auto &sublist : open_lists)
         if (sublist->is_reliable_dead_end(eval_context))
             return true;

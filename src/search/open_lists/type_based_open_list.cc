@@ -31,7 +31,7 @@ class TypeBasedOpenList : public OpenList<Entry> {
 
 protected:
     virtual void do_insertion(
-        EvaluationContext &eval_context, const Entry &entry) override;
+        EvaluationContext<Entry> &eval_context, const Entry &entry) override;
 
 public:
     explicit TypeBasedOpenList(const Options &opts);
@@ -40,15 +40,15 @@ public:
     virtual Entry remove_min() override;
     virtual bool empty() const override;
     virtual void clear() override;
-    virtual bool is_dead_end(EvaluationContext &eval_context) const override;
+    virtual bool is_dead_end(EvaluationContext<Entry> &eval_context) const override;
     virtual bool is_reliable_dead_end(
-        EvaluationContext &eval_context) const override;
+        EvaluationContext<Entry> &eval_context) const override;
     virtual void get_path_dependent_evaluators(set<Evaluator *> &evals) override;
 };
 
 template<class Entry>
 void TypeBasedOpenList<Entry>::do_insertion(
-    EvaluationContext &eval_context, const Entry &entry) {
+    EvaluationContext<Entry> &eval_context, const Entry &entry) {
     vector<int> key;
     key.reserve(evaluators.size());
     for (const shared_ptr<Evaluator> &evaluator : evaluators) {
@@ -104,7 +104,7 @@ void TypeBasedOpenList<Entry>::clear() {
 
 template<class Entry>
 bool TypeBasedOpenList<Entry>::is_dead_end(
-    EvaluationContext &eval_context) const {
+    EvaluationContext<Entry> &eval_context) const {
     // If one evaluator is sure we have a dead end, return true.
     if (is_reliable_dead_end(eval_context))
         return true;
@@ -118,7 +118,7 @@ bool TypeBasedOpenList<Entry>::is_dead_end(
 
 template<class Entry>
 bool TypeBasedOpenList<Entry>::is_reliable_dead_end(
-    EvaluationContext &eval_context) const {
+    EvaluationContext<Entry> &eval_context) const {
     for (const shared_ptr<Evaluator> &evaluator : evaluators) {
         if (evaluator->dead_ends_are_reliable() &&
             eval_context.is_evaluator_value_infinite(evaluator.get()))

@@ -99,7 +99,8 @@ void EagerSearch::initialize() {
       Note: we consider the initial state as reached by a preferred
       operator.
     */
-    EvaluationContext eval_context(initial_state, true, &statistics);
+    StateEvaluationContext eval_context(initial_state.get_id(),
+                                        state_registry, true, &statistics);
 
     statistics.inc_evaluated_states();
 
@@ -144,7 +145,7 @@ SearchStatus EagerSearch::step() {
           We can pass calculate_preferred=false here since preferred
           operators are computed when the state is expanded.
         */
-        EvaluationContext eval_context(s, false, &statistics);
+        StateEvaluationContext eval_context(id, state_registry, false, &statistics);
 
         if (lazy_evaluator) {
             /*
@@ -200,7 +201,7 @@ SearchStatus EagerSearch::step() {
     pruning_method->prune_operators(s, applicable_ops);
 
     // This evaluates the expanded state (again) to get preferred ops
-    EvaluationContext eval_context(s, false, &statistics, true);
+    StateEvaluationContext eval_context(s.get_id(), state_registry, false, &statistics, true);
     ordered_set::OrderedSet<OperatorID> preferred_operators;
     for (const shared_ptr<Evaluator> &preferred_operator_evaluator : preferred_operator_evaluators) {
         collect_preferred_operators(eval_context,
@@ -222,7 +223,8 @@ SearchStatus EagerSearch::step() {
         for (Evaluator *evaluator : path_dependent_evaluators) {
             evaluator->notify_state_transition(s, op_id, succ_state);
         }
-        EvaluationContext succ_eval_context(succ_state, is_preferred, &statistics);
+        StateEvaluationContext succ_eval_context(succ_state.get_id(), state_registry,
+                                                 is_preferred, &statistics);
 
         SearchNode succ_node = search_space.get_node(succ_state);
 
@@ -310,7 +312,7 @@ void EagerSearch::dump_search_space() const {
     search_space.dump(task_proxy);
 }
 
-void EagerSearch::start_f_value_statistics(EvaluationContext &eval_context) {
+void EagerSearch::start_f_value_statistics(StateEvaluationContext &eval_context) {
     if (f_evaluator) {
         int f_value = eval_context.get_evaluator_value(f_evaluator.get());
         statistics.report_f_value_progress(f_value);
@@ -319,7 +321,7 @@ void EagerSearch::start_f_value_statistics(EvaluationContext &eval_context) {
 
 /* TODO: HACK! This is very inefficient for simply looking up an h value.
    Also, if h values are not saved it would recompute h for each and every state. */
-void EagerSearch::update_f_value_statistics(EvaluationContext &eval_context) {
+void EagerSearch::update_f_value_statistics(StateEvaluationContext &eval_context) {
     if (f_evaluator) {
         int f_value = eval_context.get_evaluator_value(f_evaluator.get());
         statistics.report_f_value_progress(f_value);

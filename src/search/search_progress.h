@@ -3,6 +3,13 @@
 
 #include <unordered_map>
 
+
+#include "evaluation_context.h"
+#include "evaluator.h"
+
+#include "../utils/logging.h"
+
+template<typename Entry>
 class EvaluationContext;
 class Evaluator;
 
@@ -42,7 +49,29 @@ public:
       has not been evaluated previously, e.g., after evaluating the initial
       state.
     */
-    bool check_progress(const EvaluationContext &eval_context);
+    template<class Entry>
+    bool check_progress(const EvaluationContext<Entry> &eval_context);
 };
+
+template<class Entry>
+bool SearchProgress::check_progress(const EvaluationContext<Entry> &eval_context) {
+    bool boost = false;
+    eval_context.get_cache().for_each_evaluator_result(
+        [this, &boost](const Evaluator *eval, const EvaluationResult &result) {
+            if (eval->is_used_for_reporting_minima() || eval->is_used_for_boosting()) {
+                if (process_evaluator_value(eval, result.get_evaluator_value())) {
+                    if (verbosity >= utils::Verbosity::NORMAL &&
+                        eval->is_used_for_reporting_minima()) {
+                        eval->report_new_minimum_value(result);
+                    }
+                    if (eval->is_used_for_boosting()) {
+                        boost = true;
+                    }
+                }
+            }
+        }
+        );
+    return boost;
+}
 
 #endif

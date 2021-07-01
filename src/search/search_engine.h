@@ -1,6 +1,9 @@
 #ifndef SEARCH_ENGINE_H
 #define SEARCH_ENGINE_H
 
+#include "algorithms/ordered_set.h"
+#include "evaluator.h"
+#include "evaluation_result.h"
 #include "operator_cost.h"
 #include "operator_id.h"
 #include "plan_manager.h"
@@ -83,10 +86,26 @@ public:
 /*
   Print evaluator values of all evaluators evaluated in the evaluation context.
 */
-extern void print_initial_evaluator_values(const EvaluationContext &eval_context);
+template<typename Entry>
+void print_initial_evaluator_values(const EvaluationContext<Entry> &eval_context) {
+    eval_context.get_cache().for_each_evaluator_result(
+        [] (const Evaluator *eval, const EvaluationResult &result) {
+            if (eval->is_used_for_reporting_minima()) {
+                eval->report_value_for_initial_state(result);
+            }
+        }
+        );
+}
 
-extern void collect_preferred_operators(
-    EvaluationContext &eval_context, Evaluator *preferred_operator_evaluator,
-    ordered_set::OrderedSet<OperatorID> &preferred_operators);
+template<typename Entry>
+void collect_preferred_operators(EvaluationContext<Entry> &eval_context,
+    Evaluator *preferred_operator_evaluator,
+    ordered_set::OrderedSet<OperatorID> &preferred_operators) {
+    if (!eval_context.is_evaluator_value_infinite(preferred_operator_evaluator)) {
+        for (OperatorID op_id : eval_context.get_preferred_operators(preferred_operator_evaluator)) {
+            preferred_operators.insert(op_id);
+        }
+    }
+}
 
 #endif

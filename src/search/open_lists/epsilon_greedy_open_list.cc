@@ -42,7 +42,7 @@ class EpsilonGreedyOpenList : public OpenList<Entry> {
     int next_id;
 
 protected:
-    virtual void do_insertion(EvaluationContext &eval_context,
+    virtual void do_insertion(EvaluationContext<Entry> &eval_context,
                               const Entry &entry) override;
 
 public:
@@ -51,9 +51,9 @@ public:
 
     virtual Entry remove_min() override;
     virtual bool is_dead_end(
-        EvaluationContext &eval_context) const override;
+        EvaluationContext<Entry> &eval_context) const override;
     virtual bool is_reliable_dead_end(
-        EvaluationContext &eval_context) const override;
+        EvaluationContext<Entry> &eval_context) const override;
     virtual void get_path_dependent_evaluators(set<Evaluator *> &evals) override;
     virtual bool empty() const override;
     virtual void clear() override;
@@ -74,7 +74,7 @@ static void adjust_heap_up(vector<HeapNode> &heap, size_t pos) {
 
 template<class Entry>
 void EpsilonGreedyOpenList<Entry>::do_insertion(
-    EvaluationContext &eval_context, const Entry &entry) {
+    EvaluationContext<Entry> &eval_context, const Entry &entry) {
     heap.emplace_back(
         next_id++, eval_context.get_evaluator_value(evaluator.get()), entry);
     push_heap(heap.begin(), heap.end(), greater<HeapNode>());
@@ -108,13 +108,13 @@ Entry EpsilonGreedyOpenList<Entry>::remove_min() {
 
 template<class Entry>
 bool EpsilonGreedyOpenList<Entry>::is_dead_end(
-    EvaluationContext &eval_context) const {
+    EvaluationContext<Entry> &eval_context) const {
     return eval_context.is_evaluator_value_infinite(evaluator.get());
 }
 
 template<class Entry>
 bool EpsilonGreedyOpenList<Entry>::is_reliable_dead_end(
-    EvaluationContext &eval_context) const {
+    EvaluationContext<Entry> &eval_context) const {
     return is_dead_end(eval_context) && evaluator->dead_ends_are_reliable();
 }
 

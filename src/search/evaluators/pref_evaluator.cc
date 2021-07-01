@@ -14,8 +14,16 @@ PrefEvaluator::PrefEvaluator() {
 PrefEvaluator::~PrefEvaluator() {
 }
 
-EvaluationResult PrefEvaluator::compute_result(
-    EvaluationContext &eval_context) {
+EvaluationResult PrefEvaluator::compute_result(StateEvaluationContext &eval_context) {
+    EvaluationResult result;
+    if (eval_context.is_preferred())
+        result.set_evaluator_value(0);
+    else
+        result.set_evaluator_value(1);
+    return result;
+}
+
+EvaluationResult PrefEvaluator::compute_result(EdgeEvaluationContext &eval_context) {
     EvaluationResult result;
     if (eval_context.is_preferred())
         result.set_evaluator_value(0);

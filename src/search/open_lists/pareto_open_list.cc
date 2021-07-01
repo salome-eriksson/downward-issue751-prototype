@@ -40,7 +40,7 @@ class ParetoOpenList : public OpenList<Entry> {
     void remove_key(const KeyType &key);
 
 protected:
-    virtual void do_insertion(EvaluationContext &eval_context,
+    virtual void do_insertion(EvaluationContext<Entry> &eval_context,
                               const Entry &entry) override;
 
 public:
@@ -52,9 +52,9 @@ public:
     virtual void clear() override;
     virtual void get_path_dependent_evaluators(set<Evaluator *> &evals) override;
     virtual bool is_dead_end(
-        EvaluationContext &eval_context) const override;
+        EvaluationContext<Entry> &eval_context) const override;
     virtual bool is_reliable_dead_end(
-        EvaluationContext &eval_context) const override;
+        EvaluationContext<Entry> &eval_context) const override;
 
     static OpenList<Entry> *_parse(OptionParser &p);
 };
@@ -122,7 +122,7 @@ void ParetoOpenList<Entry>::remove_key(const KeyType &key) {
 
 template<class Entry>
 void ParetoOpenList<Entry>::do_insertion(
-    EvaluationContext &eval_context, const Entry &entry) {
+    EvaluationContext<Entry> &eval_context, const Entry &entry) {
     vector<int> key;
     key.reserve(evaluators.size());
     for (const shared_ptr<Evaluator> &evaluator : evaluators)
@@ -199,7 +199,7 @@ void ParetoOpenList<Entry>::get_path_dependent_evaluators(
 
 template<class Entry>
 bool ParetoOpenList<Entry>::is_dead_end(
-    EvaluationContext &eval_context) const {
+    EvaluationContext<Entry> &eval_context) const {
     // TODO: Document this behaviour.
     // If one safe heuristic detects a dead end, return true.
     if (is_reliable_dead_end(eval_context))
@@ -213,7 +213,7 @@ bool ParetoOpenList<Entry>::is_dead_end(
 
 template<class Entry>
 bool ParetoOpenList<Entry>::is_reliable_dead_end(
-    EvaluationContext &eval_context) const {
+    EvaluationContext<Entry> &eval_context) const {
     for (const shared_ptr<Evaluator> &evaluator : evaluators)
         if (eval_context.is_evaluator_value_infinite(evaluator.get()) &&
             evaluator->dead_ends_are_reliable())

@@ -34,7 +34,7 @@ class TieBreakingOpenList : public OpenList<Entry> {
     int dimension() const;
 
 protected:
-    virtual void do_insertion(EvaluationContext &eval_context,
+    virtual void do_insertion(EvaluationContext<Entry> &eval_context,
                               const Entry &entry) override;
 
 public:
@@ -46,9 +46,9 @@ public:
     virtual void clear() override;
     virtual void get_path_dependent_evaluators(set<Evaluator *> &evals) override;
     virtual bool is_dead_end(
-        EvaluationContext &eval_context) const override;
+        EvaluationContext<Entry> &eval_context) const override;
     virtual bool is_reliable_dead_end(
-        EvaluationContext &eval_context) const override;
+        EvaluationContext<Entry> &eval_context) const override;
 };
 
 
@@ -61,7 +61,7 @@ TieBreakingOpenList<Entry>::TieBreakingOpenList(const Options &opts)
 
 template<class Entry>
 void TieBreakingOpenList<Entry>::do_insertion(
-    EvaluationContext &eval_context, const Entry &entry) {
+    EvaluationContext<Entry> &eval_context, const Entry &entry) {
     vector<int> key;
     key.reserve(evaluators.size());
     for (const shared_ptr<Evaluator> &evaluator : evaluators)
@@ -111,7 +111,7 @@ void TieBreakingOpenList<Entry>::get_path_dependent_evaluators(
 
 template<class Entry>
 bool TieBreakingOpenList<Entry>::is_dead_end(
-    EvaluationContext &eval_context) const {
+    EvaluationContext<Entry> &eval_context) const {
     // TODO: Properly document this behaviour.
     // If one safe heuristic detects a dead end, return true.
     if (is_reliable_dead_end(eval_context))
@@ -130,7 +130,7 @@ bool TieBreakingOpenList<Entry>::is_dead_end(
 
 template<class Entry>
 bool TieBreakingOpenList<Entry>::is_reliable_dead_end(
-    EvaluationContext &eval_context) const {
+    EvaluationContext<Entry> &eval_context) const {
     for (const shared_ptr<Evaluator> &evaluator : evaluators)
         if (eval_context.is_evaluator_value_infinite(evaluator.get()) &&
             evaluator->dead_ends_are_reliable())

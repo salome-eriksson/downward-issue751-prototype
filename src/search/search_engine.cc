@@ -5,7 +5,6 @@
 #include "option_parser.h"
 #include "plugin.h"
 
-#include "algorithms/ordered_set.h"
 #include "evaluators/g_evaluator.h"
 #include "task_utils/successor_generator.h"
 #include "task_utils/task_properties.h"
@@ -181,28 +180,7 @@ void SearchEngine::add_succ_order_options(OptionParser &parser) {
     utils::add_rng_options(parser);
 }
 
-void print_initial_evaluator_values(const EvaluationContext &eval_context) {
-    eval_context.get_cache().for_each_evaluator_result(
-        [] (const Evaluator *eval, const EvaluationResult &result) {
-            if (eval->is_used_for_reporting_minima()) {
-                eval->report_value_for_initial_state(result);
-            }
-        }
-        );
-}
-
 static PluginTypePlugin<SearchEngine> _type_plugin(
     "SearchEngine",
     // TODO: Replace empty string by synopsis for the wiki page.
     "");
-
-void collect_preferred_operators(
-    EvaluationContext &eval_context,
-    Evaluator *preferred_operator_evaluator,
-    ordered_set::OrderedSet<OperatorID> &preferred_operators) {
-    if (!eval_context.is_evaluator_value_infinite(preferred_operator_evaluator)) {
-        for (OperatorID op_id : eval_context.get_preferred_operators(preferred_operator_evaluator)) {
-            preferred_operators.insert(op_id);
-        }
-    }
-}

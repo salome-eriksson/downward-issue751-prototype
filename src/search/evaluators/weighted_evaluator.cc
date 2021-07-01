@@ -27,8 +27,19 @@ bool WeightedEvaluator::dead_ends_are_reliable() const {
     return evaluator->dead_ends_are_reliable();
 }
 
-EvaluationResult WeightedEvaluator::compute_result(
-    EvaluationContext &eval_context) {
+EvaluationResult WeightedEvaluator::compute_result(StateEvaluationContext &eval_context) {
+    // Note that this produces no preferred operators.
+    EvaluationResult result;
+    int value = eval_context.get_evaluator_value_or_infinity(evaluator.get());
+    if (value != EvaluationResult::INFTY) {
+        // TODO: Check for overflow?
+        value *= w;
+    }
+    result.set_evaluator_value(value);
+    return result;
+}
+
+EvaluationResult WeightedEvaluator::compute_result(EdgeEvaluationContext &eval_context) {
     // Note that this produces no preferred operators.
     EvaluationResult result;
     int value = eval_context.get_evaluator_value_or_infinity(evaluator.get());

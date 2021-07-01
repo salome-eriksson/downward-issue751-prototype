@@ -63,6 +63,7 @@ protected:
     enum {DEAD_END = -1, NO_VALUE = -2};
 
     virtual int compute_heuristic(const State &ancestor_state) = 0;
+    virtual int compute_heuristic(const State &ancestor_state, OperatorID operator_id);
 
     /*
       Usage note: Marking the same operator as preferred multiple times
@@ -84,7 +85,9 @@ public:
     static void add_options_to_parser(options::OptionParser &parser);
 
     virtual EvaluationResult compute_result(
-        EvaluationContext &eval_context) override;
+        StateEvaluationContext &eval_context) override;
+    virtual EvaluationResult compute_result(
+        EdgeEvaluationContext &eval_context) override;
 
     virtual bool does_cache_estimates() const override;
     virtual bool is_estimate_cached(const State &state) const override;

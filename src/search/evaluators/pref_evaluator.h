@@ -13,7 +13,9 @@ public:
     virtual ~PrefEvaluator() override;
 
     virtual EvaluationResult compute_result(
-        EvaluationContext &eval_context) override;
+        StateEvaluationContext &eval_context) override;
+    virtual EvaluationResult compute_result(
+        EdgeEvaluationContext &eval_context) override;
     virtual void get_path_dependent_evaluators(std::set<Evaluator *> &) override {}
 };
 }

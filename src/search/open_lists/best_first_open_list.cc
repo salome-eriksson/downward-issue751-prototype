@@ -24,7 +24,7 @@ class BestFirstOpenList : public OpenList<Entry> {
     shared_ptr<Evaluator> evaluator;
 
 protected:
-    virtual void do_insertion(EvaluationContext &eval_context,
+    virtual void do_insertion(EvaluationContext<Entry> &eval_context,
                               const Entry &entry) override;
 
 public:
@@ -37,9 +37,9 @@ public:
     virtual void clear() override;
     virtual void get_path_dependent_evaluators(set<Evaluator *> &evals) override;
     virtual bool is_dead_end(
-        EvaluationContext &eval_context) const override;
+        EvaluationContext<Entry> &eval_context) const override;
     virtual bool is_reliable_dead_end(
-        EvaluationContext &eval_context) const override;
+        EvaluationContext<Entry> &eval_context) const override;
 };
 
 
@@ -60,7 +60,7 @@ BestFirstOpenList<Entry>::BestFirstOpenList(
 
 template<class Entry>
 void BestFirstOpenList<Entry>::do_insertion(
-    EvaluationContext &eval_context, const Entry &entry) {
+    EvaluationContext<Entry> &eval_context, const Entry &entry) {
     int key = eval_context.get_evaluator_value(evaluator.get());
     buckets[key].push_back(entry);
     ++size;
@@ -100,13 +100,13 @@ void BestFirstOpenList<Entry>::get_path_dependent_evaluators(
 
 template<class Entry>
 bool BestFirstOpenList<Entry>::is_dead_end(
-    EvaluationContext &eval_context) const {
+    EvaluationContext<Entry> &eval_context) const {
     return eval_context.is_evaluator_value_infinite(evaluator.get());
 }
 
 template<class Entry>
 bool BestFirstOpenList<Entry>::is_reliable_dead_end(
-    EvaluationContext &eval_context) const {
+    EvaluationContext<Entry> &eval_context) const {
     return is_dead_end(eval_context) && evaluator->dead_ends_are_reliable();
 }
 

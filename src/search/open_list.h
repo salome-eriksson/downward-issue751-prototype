@@ -21,7 +21,8 @@ protected:
       to be inserted is not preferred. Hence, these conditions need
       not be checked by the implementation.
     */
-    virtual void do_insertion(EvaluationContext &eval_context,
+
+    virtual void do_insertion(EvaluationContext<Entry> &eval_context,
                               const Entry &entry) = 0;
 
 public:
@@ -45,7 +46,7 @@ public:
       do_insertion performing the bulk of the work. See comments for
       do_insertion.
     */
-    void insert(EvaluationContext &eval_context, const Entry &entry);
+    void insert(EvaluationContext<Entry> &eval_context, const Entry &entry);
 
     /*
       Remove and return the entry that should be expanded next.
@@ -120,9 +121,9 @@ public:
       Like OpenList::insert, the methods usually evaluate heuristic
       values, which are then cached in eval_context as a side effect.
     */
-    virtual bool is_dead_end(EvaluationContext &eval_context) const = 0;
+    virtual bool is_dead_end(EvaluationContext<Entry> &eval_context) const = 0;
     virtual bool is_reliable_dead_end(
-        EvaluationContext &eval_context) const = 0;
+        EvaluationContext<Entry> &eval_context) const = 0;
 };
 
 
@@ -144,7 +145,7 @@ void OpenList<Entry>::boost_preferred() {
 
 template<class Entry>
 void OpenList<Entry>::insert(
-    EvaluationContext &eval_context, const Entry &entry) {
+    EvaluationContext<Entry> &eval_context, const Entry &entry) {
     if (only_preferred && !eval_context.is_preferred())
         return;
     if (!is_dead_end(eval_context))

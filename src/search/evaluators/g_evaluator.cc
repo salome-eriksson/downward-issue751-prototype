@@ -15,6 +15,13 @@ int GEvaluator::compute_heuristic(const State &ancestor_state) {
     return heuristic_cache[ancestor_state].h;
 }
 
+int GEvaluator::compute_heuristic(const State &ancestor_state, OperatorID operator_id) {
+    // No need to convert the state since we only allow cost transformations.
+    int parent_g = heuristic_cache[ancestor_state].h;
+    int cost = task_proxy.get_operators()[operator_id.get_index()].get_cost();
+    return parent_g + cost;
+}
+
 void GEvaluator::get_path_dependent_evaluators(std::set<Evaluator *> &evals) {
     evals.insert(this);
 }

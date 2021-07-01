@@ -10,7 +10,13 @@ ConstEvaluator::ConstEvaluator(const Options &opts)
     : value(opts.get<int>("value")) {
 }
 
-EvaluationResult ConstEvaluator::compute_result(EvaluationContext &) {
+EvaluationResult ConstEvaluator::compute_result(StateEvaluationContext &) {
+    EvaluationResult result;
+    result.set_evaluator_value(value);
+    return result;
+}
+
+EvaluationResult ConstEvaluator::compute_result(EdgeEvaluationContext &) {
     EvaluationResult result;
     result.set_evaluator_value(value);
     return result;

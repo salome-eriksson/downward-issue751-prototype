@@ -12,8 +12,8 @@ class ConstEvaluator : public Evaluator {
     int value;
 
 protected:
-    virtual EvaluationResult compute_result(
-        EvaluationContext &eval_context) override;
+    virtual EvaluationResult compute_result(StateEvaluationContext &eval_context) override;
+    virtual EvaluationResult compute_result(EdgeEvaluationContext &eval_context) override;
 
 public:
     explicit ConstEvaluator(const options::Options &opts);

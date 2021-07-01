@@ -2,11 +2,19 @@
 #define EVALUATOR_H
 
 #include "evaluation_result.h"
+#include "state_id.h"
 
 #include <set>
 
+template<typename Entry>
 class EvaluationContext;
 class State;
+
+// TODO: can we get rid of this?
+using StateEvaluationContextEntry = StateID;
+using EdgeEvaluationContextEntry = std::pair<StateID, OperatorID>;
+using StateEvaluationContext = EvaluationContext<StateEvaluationContextEntry>;
+using EdgeEvaluationContext = EvaluationContext<EdgeEvaluationContextEntry>;
 
 class Evaluator {
     const std::string description;
@@ -74,7 +82,10 @@ public:
       this.
     */
     virtual EvaluationResult compute_result(
-        EvaluationContext &eval_context) = 0;
+        StateEvaluationContext &eval_context) = 0;
+
+    // TODO can we avoid code duplication here? virtual functions cannot be templated.
+    virtual EvaluationResult compute_result(EdgeEvaluationContext &) = 0;
 
     void report_value_for_initial_state(const EvaluationResult &result) const;
     void report_new_minimum_value(const EvaluationResult &result) const;

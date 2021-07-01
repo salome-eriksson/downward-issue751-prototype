@@ -7,6 +7,7 @@ namespace g_evaluator {
 class GEvaluator : public Heuristic {
 protected:
     virtual int compute_heuristic(const State &ancestor_state) override;
+    virtual int compute_heuristic(const State &ancestor_state, OperatorID operator_id) override;
 public:
     explicit GEvaluator(const options::Options &opts);
 
