@@ -11,6 +11,10 @@ static shared_ptr<SearchEngine> _parse(OptionParser &parser) {
     parser.document_synopsis("Lazy best-first search", "");
     parser.add_option<shared_ptr<OpenListFactory>>("open", "open list");
     parser.add_option<bool>("reopen_closed", "reopen closed nodes", "false");
+    parser.add_option<shared_ptr<Evaluator>>(
+        "g_evaluator",
+        "evaluator for path costs of search nodes. (Required iff reopen_closed=true.)",
+        OptionParser::NONE);
     parser.add_list_option<shared_ptr<Evaluator>>(
         "preferred",
         "use preferred operators of these evaluators", "[]");

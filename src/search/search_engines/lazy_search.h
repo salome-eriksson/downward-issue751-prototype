@@ -29,20 +29,18 @@ protected:
     bool preferred_successors_first;
     std::shared_ptr<utils::RandomNumberGenerator> rng;
 
+    std::shared_ptr<Evaluator> g_evaluator;
     std::vector<Evaluator *> path_dependent_evaluators;
     std::vector<std::shared_ptr<Evaluator>> preferred_operator_evaluators;
 
     State current_state;
     StateID current_predecessor_id;
     OperatorID current_operator_id;
-    int current_g;
-    int current_real_g;
-    EvaluationContext current_eval_context;
 
     virtual void initialize() override;
     virtual SearchStatus step() override;
 
-    void generate_successors();
+    void generate_successors(EdgeEvaluationContext &evaluation_context);
     SearchStatus fetch_next_state();
 
     void reward_progress();

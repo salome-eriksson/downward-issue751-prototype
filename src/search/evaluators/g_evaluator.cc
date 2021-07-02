@@ -18,17 +18,21 @@ int GEvaluator::compute_heuristic(const State &ancestor_state) {
 
 
 EvaluationResult GEvaluator::compute_result(EdgeEvaluationContext &eval_context) {
-
     EvaluationResult result;
 
     const State &parent_state = eval_context.get_state();
     OperatorID operator_id = eval_context.get_operator_id();
-    int parent_g = heuristic_cache[parent_state].h;
-    int cost = task_proxy.get_operators()[operator_id.get_index()].get_cost();
-
-    // TODO: should we count this as evaluation?
-    result.set_count_evaluation(true);
-    result.set_evaluator_value(parent_g + cost);
+    int value = heuristic_cache[parent_state].h;
+    if (operator_id == OperatorID::no_operator) {
+        // remove dirty flag
+        heuristic_cache[parent_state].dirty = false;
+        result.set_count_evaluation(false);
+    } else {
+        value += task_proxy.get_operators()[operator_id.get_index()].get_cost();
+        // TODO: should we count this evaluation?
+        result.set_count_evaluation(true);
+    }
+    result.set_evaluator_value(value);
     return result;
 }
 void GEvaluator::get_path_dependent_evaluators(std::set<Evaluator *> &evals) {

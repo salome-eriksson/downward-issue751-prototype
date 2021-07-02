@@ -25,16 +25,20 @@ LazySearch::LazySearch(const Options &opts)
       randomize_successors(opts.get<bool>("randomize_successors")),
       preferred_successors_first(opts.get<bool>("preferred_successors_first")),
       rng(utils::parse_rng_from_options(opts)),
+      g_evaluator(opts.get<shared_ptr<Evaluator>>("g_evaluator", nullptr)),
       current_state(state_registry.get_initial_state()),
       current_predecessor_id(StateID::no_state),
-      current_operator_id(OperatorID::no_operator),
-      current_g(0),
-      current_real_g(0),
-      current_eval_context(current_state, 0, true, &statistics) {
-    /*
-      We initialize current_eval_context in such a way that the initial node
-      counts as "preferred".
-    */
+      current_operator_id(OperatorID::no_operator) {
+
+    if (reopen_closed_nodes && !g_evaluator) {
+        cerr << "g_evaluator is required if reopen_closed=true. "
+             << "For example, you may use g_evaluator=g()." << endl;
+        utils::exit_with(utils::ExitCode::SEARCH_INPUT_ERROR);
+    }
+    if (g_evaluator && !g_evaluator->does_cache_estimates()) {
+        cerr << "g_evaluator must cache its estimates" << endl;
+        utils::exit_with(utils::ExitCode::SEARCH_INPUT_ERROR);
+    }
 }
 
 void LazySearch::set_preferred_operator_evaluators(
@@ -53,6 +57,17 @@ void LazySearch::initialize() {
     // not also used in the open list).
     for (const shared_ptr<Evaluator> &evaluator : preferred_operator_evaluators) {
         evaluator->get_path_dependent_evaluators(evals);
+    }
+
+    /*
+      Collect path-dependent evaluators that are used in the g-evaluators
+     (in case they are not already included).
+    */
+    if (g_evaluator) {
+        g_evaluator->get_path_dependent_evaluators(evals);
+    }
+    if (real_g_evaluator) {
+        real_g_evaluator->get_path_dependent_evaluators(evals);
     }
 
     path_dependent_evaluators.assign(evals.begin(), evals.end());
@@ -86,10 +101,10 @@ vector<OperatorID> LazySearch::get_successor_operators(
     }
 }
 
-void LazySearch::generate_successors() {
+void LazySearch::generate_successors(EdgeEvaluationContext &evaluation_context) {
     ordered_set::OrderedSet<OperatorID> preferred_operators;
     for (const shared_ptr<Evaluator> &preferred_operator_evaluator : preferred_operator_evaluators) {
-        collect_preferred_operators(current_eval_context,
+        collect_preferred_operators(evaluation_context,
                                     preferred_operator_evaluator.get(),
                                     preferred_operators);
     }
@@ -104,13 +119,24 @@ void LazySearch::generate_successors() {
 
     for (OperatorID op_id : successor_operators) {
         OperatorProxy op = task_proxy.get_operators()[op_id];
-        int new_g = current_g + get_adjusted_cost(op);
-        int new_real_g = current_real_g + op.get_cost();
+
+        EdgeOpenListEntry  entry = make_pair(current_state.get_id(), op_id);
+        // TODO: update note
+        /*
+          Note: We mark the node in current_eval_context as "preferred"
+          here. This probably doesn't matter much either way because the
+          node has already been selected for expansion, but eventually we
+          should think more deeply about which path information to
+          associate with the expanded vs. evaluated nodes in lazy search
+          and where to obtain it from.
+        */
         bool is_preferred = preferred_operators.contains(op_id);
+        EdgeEvaluationContext new_eval_context(entry, state_registry, is_preferred, &statistics);
+        int new_real_g = real_g_evaluator
+                ? real_g_evaluator->compute_result(new_eval_context).get_evaluator_value()
+                : -1;
         if (new_real_g < bound) {
-            EvaluationContext new_eval_context(
-                current_eval_context, new_g, is_preferred, nullptr);
-            open_list->insert(new_eval_context, make_pair(current_state.get_id(), op_id));
+            open_list->insert(new_eval_context, entry);
         }
     }
 }
@@ -131,19 +157,6 @@ SearchStatus LazySearch::fetch_next_state() {
     current_state = state_registry.get_successor_state(current_predecessor, current_operator);
 
     SearchNode pred_node = search_space.get_node(current_predecessor);
-    current_g = pred_node.get_g() + get_adjusted_cost(current_operator);
-    current_real_g = pred_node.get_real_g() + current_operator.get_cost();
-
-    /*
-      Note: We mark the node in current_eval_context as "preferred"
-      here. This probably doesn't matter much either way because the
-      node has already been selected for expansion, but eventually we
-      should think more deeply about which path information to
-      associate with the expanded vs. evaluated nodes in lazy search
-      and where to obtain it from.
-    */
-    current_eval_context = EvaluationContext(current_state, current_g, true, &statistics);
-
     return IN_PROGRESS;
 }
 
@@ -152,57 +165,73 @@ SearchStatus LazySearch::step() {
     // - current_state is the next state for which we want to compute the heuristic.
     // - current_predecessor is a permanent pointer to the predecessor of that state.
     // - current_operator is the operator which leads to current_state from predecessor.
-    // - current_g is the g value of the current state according to the cost_type
-    // - current_real_g is the g value of the current state (using real costs)
 
 
     SearchNode node = search_space.get_node(current_state);
+
+    if (current_operator_id != OperatorID::no_operator) {
+        assert(current_predecessor_id != StateID::no_state);
+        if (!path_dependent_evaluators.empty()) {
+            State parent_state = state_registry.lookup_state(current_predecessor_id);
+            for (Evaluator *evaluator : path_dependent_evaluators)
+                evaluator->notify_state_transition(
+                    parent_state, current_operator_id, current_state);
+        }
+    }
+
     bool reopen = reopen_closed_nodes && !node.is_new() &&
-        !node.is_dead_end() && (current_g < node.get_g());
+        !node.is_dead_end() && g_evaluator && 
+	g_evaluator->is_cached_estimate_dirty(current_state);
 
     if (node.is_new() || reopen) {
-        if (current_operator_id != OperatorID::no_operator) {
-            assert(current_predecessor_id != StateID::no_state);
-            if (!path_dependent_evaluators.empty()) {
-                State parent_state = state_registry.lookup_state(current_predecessor_id);
-                for (Evaluator *evaluator : path_dependent_evaluators)
-                    evaluator->notify_state_transition(
-                        parent_state, current_operator_id, current_state);
-            }
-        }
         statistics.inc_evaluated_states();
-        if (!open_list->is_dead_end(current_eval_context)) {
+        // TODO: ugly hack! Currently EdgeOpenLists can only have EdgeEvaluationContexts
+        EdgeEvaluationContext eval_context = EdgeEvaluationContext(
+                    make_pair(current_state.get_id(), OperatorID::no_operator),
+                    state_registry, true, &statistics);
+        // Mark cached g-value as not dirty.
+        if(g_evaluator) {
+            eval_context.get_evaluator_value(g_evaluator.get());
+        }
+        if (!open_list->is_dead_end(eval_context)) {
             // TODO: Generalize code for using multiple evaluators.
             if (current_predecessor_id == StateID::no_state) {
                 node.open_initial();
-                if (search_progress.check_progress(current_eval_context))
-                    statistics.print_checkpoint_line(current_g);
+                if (search_progress.check_progress(eval_context)) {
+                    int g_value = g_evaluator
+                        ? g_evaluator->get_cached_estimate(current_state)
+                        : -1;
+                    statistics.print_checkpoint_line(g_value);
+                }
             } else {
                 State parent_state = state_registry.lookup_state(current_predecessor_id);
                 SearchNode parent_node = search_space.get_node(parent_state);
                 OperatorProxy current_operator = task_proxy.get_operators()[current_operator_id];
                 if (reopen) {
-                    node.reopen(parent_node, current_operator, get_adjusted_cost(current_operator));
+                    node.reopen(parent_node, current_operator);
                     statistics.inc_reopened();
                 } else {
-                    node.open(parent_node, current_operator, get_adjusted_cost(current_operator));
+                    node.open(parent_node, current_operator);
                 }
             }
             node.close();
             if (check_goal_and_set_plan(current_state))
                 return SOLVED;
-            if (search_progress.check_progress(current_eval_context)) {
-                statistics.print_checkpoint_line(current_g);
+            if (search_progress.check_progress(eval_context)) {
+                int g_value = g_evaluator
+                    ? g_evaluator->get_cached_estimate(current_state)
+                    : -1;
+                statistics.print_checkpoint_line(g_value);
                 reward_progress();
             }
-            generate_successors();
+            generate_successors(eval_context);
             statistics.inc_expanded();
         } else {
             node.mark_as_dead_end();
             statistics.inc_dead_ends();
         }
         if (current_predecessor_id == StateID::no_state) {
-            print_initial_evaluator_values(current_eval_context);
+            print_initial_evaluator_values(eval_context);
         }
     }
     return fetch_next_state();
